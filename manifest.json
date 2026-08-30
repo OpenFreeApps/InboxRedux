@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "InboxRedux",
+  "version": "0.2.0",
+  "description": "Flexible message-preview options for Outlook on the web.",
+  "permissions": ["storage"],
+  "host_permissions": [
+    "https://outlook.office.com/*",
+    "https://outlook.office365.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://outlook.office.com/*",
+        "https://outlook.office365.com/*"
+      ],
+      "js": ["content.js"],
+      "css": ["accordion.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "options_ui": {
+    "page": "options.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "inboxredux@openfreeapps.github.io"
+    }
+  }
+}
