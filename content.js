@@ -16,6 +16,7 @@
   let readerMode = PREVIEW_MODE;
   let persistTimer;
   let activeAccordion;
+  let activeAccordionKey;
 
   function getParts() {
     const readingPane = document.querySelector("#ReadingPaneContainerId");
@@ -111,6 +112,39 @@
   function removeAccordion() {
     activeAccordion?.remove();
     activeAccordion = null;
+    activeAccordionKey = null;
+  }
+
+  function getMessageRowKey(row) {
+    for (const attribute of ["data-convid", "data-message-id", "data-item-id"]) {
+      const value = row.getAttribute(attribute);
+      if (value) return { attribute, value };
+    }
+
+    return null;
+  }
+
+  function matchesMessageRowKey(row, key) {
+    return Boolean(key && row.getAttribute(key.attribute) === key.value);
+  }
+
+  function findMessageRow(key) {
+    if (!key) return null;
+
+    return [...document.querySelectorAll(`[${key.attribute}]`)]
+      .find((row) => matchesMessageRowKey(row, key)) || null;
+  }
+
+  function restoreAccordionIfNeeded() {
+    if (!activeAccordion || activeAccordion.isConnected) return;
+
+    const row = findMessageRow(activeAccordionKey);
+    if (row) row.insertAdjacentElement("afterend", activeAccordion);
+  }
+
+  function isActiveAccordionRow(row) {
+    return activeAccordion?.previousElementSibling === row ||
+      matchesMessageRowKey(row, activeAccordionKey);
   }
 
   function getMessageRow(target, eventPath = []) {
@@ -141,6 +175,10 @@
     const copy = pane.cloneNode(true);
     copy.removeAttribute("id");
     copy.classList.add("oh-accordion-content");
+    copy.style.setProperty("display", "block", "important");
+    copy.style.setProperty("height", "100%", "important");
+    copy.style.setProperty("min-height", "0", "important");
+    copy.style.setProperty("overflow", "auto", "important");
     copy.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
     copy.querySelectorAll("button, a, input, textarea, select").forEach((element) => {
       element.setAttribute("tabindex", "-1");
@@ -148,9 +186,19 @@
     return copy;
   }
 
+  function getScrollableAccordionElement(content) {
+    const candidates = [content, ...content.querySelectorAll("*")];
+
+    return candidates.find((element) => {
+      const overflowY = getComputedStyle(element).overflowY;
+      return element.scrollHeight > element.clientHeight &&
+        (overflowY === "auto" || overflowY === "scroll");
+    }) || content;
+  }
+
   function openAccordion(row) {
     if (readerMode !== ACCORDION_MODE || !row.isConnected) return;
-    if (activeAccordion?.previousElementSibling === row) {
+    if (isActiveAccordionRow(row)) {
       removeAccordion();
       return;
     }
@@ -165,13 +213,36 @@
     accordion.innerHTML = '<div class="oh-accordion-toolbar"><span>Message preview</span><button type="button" class="oh-accordion-close" aria-label="Close message preview">×</button></div>';
     accordion.append(content);
     accordion.querySelector(".oh-accordion-close").addEventListener("click", removeAccordion);
+
+    // OWA's virtualized message list otherwise consumes wheel events before
+    // the copied reader can scroll.
+    accordion.addEventListener("wheel", (event) => {
+      if (event.ctrlKey) return;
+
+      const scrollTarget = getScrollableAccordionElement(content);
+      const before = scrollTarget.scrollTop;
+      scrollTarget.scrollTop += event.deltaY;
+
+      if (scrollTarget.scrollTop !== before) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    }, { passive: false });
+
     row.insertAdjacentElement("afterend", accordion);
     activeAccordion = accordion;
+    activeAccordionKey = getMessageRowKey(row);
   }
 
   function attachAccordionListener() {
     if (document.documentElement.dataset.ohAccordionListener === "1") return;
     document.documentElement.dataset.ohAccordionListener = "1";
+
+    document.addEventListener("click", (event) => {
+      if (readerMode !== ACCORDION_MODE || !activeAccordion) return;
+      const row = getMessageRow(event.target, event.composedPath());
+      if (row && !isActiveAccordionRow(row)) removeAccordion();
+    }, true);
 
     document.addEventListener("dblclick", (event) => {
       if (readerMode !== ACCORDION_MODE) return;
@@ -238,8 +309,12 @@
 
   function update() {
     const parts = getParts();
-    if (readerMode === ACCORDION_MODE) applyAccordionMode(parts);
-    else applyPreviewMode(parts);
+    if (readerMode === ACCORDION_MODE) {
+      applyAccordionMode(parts);
+      restoreAccordionIfNeeded();
+    } else {
+      applyPreviewMode(parts);
+    }
   }
 
   extensionApi.storage.local.get([STORAGE_KEY, MODE_KEY]).then((stored) => {
