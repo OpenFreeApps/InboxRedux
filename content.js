@@ -22,12 +22,18 @@
     const readingRegion = readingPane?.parentElement;
     const layout = readingRegion?.parentElement;
 
-    if (!readingPane || !readingRegion || !layout || layout.children.length < 3) {
-      return null;
-    }
+    if (!readingPane || !readingRegion || !layout) return null;
 
-    const [messageList, divider] = layout.children;
-    if (getComputedStyle(layout).flexDirection !== "column") return null;
+    // Outlook has changed the wrappers around the list and the reading pane
+    // several times. Derive the sibling parts from the reading pane instead
+    // of relying on a fixed three-child layout.
+    const children = [...layout.children];
+    const readingIndex = children.indexOf(readingRegion);
+    if (readingIndex < 2 || getComputedStyle(layout).flexDirection !== "column") return null;
+
+    const divider = children[readingIndex - 1];
+    const messageList = children.slice(0, readingIndex - 1)[0];
+    if (!messageList || !divider) return null;
 
     return { readingRegion, layout, messageList, divider };
   }
@@ -110,7 +116,7 @@
   function getMessageRow(target) {
     // Outlook presently exposes message rows as options. The data-attribute
     // fallbacks cover the two other row shapes seen in recent OWA builds.
-    return target.closest('[role="option"], [data-convid], [data-message-id]');
+    return target.closest('[role="option"], [data-convid], [data-message-id], [data-item-id]');
   }
 
   function cloneReadingPane() {
@@ -156,23 +162,41 @@
       const row = getMessageRow(event.target);
       if (!row) return;
 
+      // Outlook's default double-click action opens a compose-like pop-out.
+      // Accordion Reader owns this gesture, while normal single-click and
+      // multi-select behavior remain untouched.
+      event.preventDefault();
+      event.stopImmediatePropagation();
+
       // The first click selects the message and Outlook renders its native
       // reading pane. Clone that already-rendered content after it settles.
-      window.setTimeout(() => openAccordion(row), 350);
+      window.setTimeout(() => openAccordion(row), 450);
     }, true);
   }
 
   function applyAccordionMode(parts) {
+    // Attach regardless of whether Outlook's current wrappers match our
+    // resizable-pane layout. That keeps the reader usable across OWA updates.
+    attachAccordionListener();
+
+    if (!parts) {
+      const readingRegion = document.querySelector("#ReadingPaneContainerId")?.parentElement;
+      readingRegion?.style.setProperty("display", "none", "important");
+      return;
+    }
+
     parts.readingRegion.style.setProperty("display", "none", "important");
     parts.divider.style.setProperty("display", "none", "important");
     parts.messageList.style.setProperty("flex", "1 1 0px", "important");
     parts.messageList.style.setProperty("min-height", "0", "important");
-    attachAccordionListener();
   }
 
   function applyPreviewMode(parts) {
     removeAccordion();
-    parts.readingRegion.style.removeProperty("display");
+    const readingRegion = document.querySelector("#ReadingPaneContainerId")?.parentElement;
+    readingRegion?.style.removeProperty("display");
+    if (!parts) return;
+
     parts.divider.style.removeProperty("display");
     applyHeight(parts);
     attachDivider(parts);
@@ -180,7 +204,6 @@
 
   function update() {
     const parts = getParts();
-    if (!parts) return;
     if (readerMode === ACCORDION_MODE) applyAccordionMode(parts);
     else applyPreviewMode(parts);
   }
