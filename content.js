@@ -17,8 +17,11 @@
   let persistTimer;
   let activeAccordion;
   let activeAccordionKey;
+  let liveReader;
 
   function getParts() {
+    if (liveReader?.parts?.layout?.isConnected) return liveReader.parts;
+
     const readingPane = document.querySelector("#ReadingPaneContainerId");
     const readingRegion = readingPane?.parentElement;
     const layout = readingRegion?.parentElement;
@@ -109,7 +112,28 @@
     parts.divider.addEventListener("pointercancel", finishDrag, true);
   }
 
+  function restoreLiveReader() {
+    if (!liveReader) return;
+
+    const { parts, placeholder, readingRegion } = liveReader;
+    if (placeholder.isConnected) {
+      placeholder.replaceWith(readingRegion);
+    } else if (parts.divider?.isConnected) {
+      parts.divider.insertAdjacentElement("afterend", readingRegion);
+    }
+
+    readingRegion.classList.remove("oh-live-reading-region");
+    readingRegion.style.removeProperty("display");
+    readingRegion.style.removeProperty("position");
+    readingRegion.style.removeProperty("inset");
+    readingRegion.style.removeProperty("height");
+    readingRegion.style.removeProperty("visibility");
+    readingRegion.style.removeProperty("pointer-events");
+    liveReader = null;
+  }
+
   function removeAccordion() {
+    restoreLiveReader();
     activeAccordion?.remove();
     activeAccordion = null;
     activeAccordionKey = null;
@@ -166,30 +190,6 @@
     return null;
   }
 
-  function cloneReadingPane() {
-    const pane = document.querySelector("#ReadingPaneContainerId");
-    if (!pane) return null;
-
-    // Clone the entire pane rather than only its first wrapper. Current OWA
-    // builds place the actual message body in a sibling wrapper.
-    const copy = pane.cloneNode(true);
-    copy.removeAttribute("id");
-    copy.classList.add("oh-accordion-content");
-    copy.style.setProperty("display", "block", "important");
-    copy.style.setProperty("height", "100%", "important");
-    copy.style.setProperty("min-height", "0", "important");
-    copy.style.setProperty("overflow", "auto", "important");
-    copy.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
-
-    // This is a static preview, not a second Outlook command surface. Remove
-    // controls whose original event handlers cannot be cloned faithfully.
-    copy.querySelectorAll('[role="toolbar"], button, [role="button"], input, textarea, select')
-      .forEach((element) => element.remove());
-    copy.querySelectorAll("a").forEach((element) => element.setAttribute("tabindex", "-1"));
-
-    return copy;
-  }
-
   function getScrollableElement(root) {
     const candidates = [root, ...root.querySelectorAll("*")];
 
@@ -212,23 +212,29 @@
       return;
     }
 
-    const content = cloneReadingPane();
-    if (!content) return;
+    const parts = getParts();
+    if (!parts) return;
 
     removeAccordion();
     const accordion = document.createElement("section");
     accordion.className = "oh-accordion-reader";
     accordion.setAttribute("aria-label", "Opened message");
     accordion.innerHTML = '<div class="oh-accordion-toolbar"><span>Message preview</span><button type="button" class="oh-accordion-close" aria-label="Close message preview">×</button></div>';
-    accordion.append(content);
+
+    // Re-parent the live Outlook reader instead of cloning it. Its event
+    // handlers and controls—including blocked-content approval—stay intact.
+    const placeholder = document.createComment("InboxRedux live reader");
+    parts.readingRegion.replaceWith(placeholder);
+    parts.readingRegion.classList.add("oh-live-reading-region");
+    accordion.append(parts.readingRegion);
     accordion.querySelector(".oh-accordion-close").addEventListener("click", removeAccordion);
 
-    // Scroll the copied reader first. At either edge, explicitly hand the
-    // wheel motion to Outlook's virtualized inbox list instead of trapping it.
+    // Scroll the live reader first. At either edge, explicitly hand the wheel
+    // motion to Outlook's virtualized inbox list instead of trapping it.
     accordion.addEventListener("wheel", (event) => {
       if (event.ctrlKey) return;
 
-      const readerScrollTarget = getScrollableElement(content);
+      const readerScrollTarget = getScrollableElement(parts.readingRegion);
       if (canScroll(readerScrollTarget, event.deltaY)) {
         readerScrollTarget.scrollTop += event.deltaY;
         event.preventDefault();
@@ -236,20 +242,20 @@
         return;
       }
 
-      const parts = getParts();
-      const inboxScrollTarget = parts ? getScrollableElement(parts.messageList) : null;
+      const currentParts = getParts();
+      const inboxScrollTarget = currentParts ? getScrollableElement(currentParts.messageList) : null;
       if (!inboxScrollTarget || !canScroll(inboxScrollTarget, event.deltaY)) return;
 
       inboxScrollTarget.scrollTop += event.deltaY;
       event.preventDefault();
       event.stopPropagation();
-    }, { passive: false });
+    }, { capture: true, passive: false });
 
     row.insertAdjacentElement("afterend", accordion);
     activeAccordion = accordion;
     activeAccordionKey = getMessageRowKey(row);
+    liveReader = { parts, placeholder, readingRegion: parts.readingRegion };
   }
-
   function attachAccordionListener() {
     if (document.documentElement.dataset.ohAccordionListener === "1") return;
     document.documentElement.dataset.ohAccordionListener = "1";
@@ -288,20 +294,25 @@
       return;
     }
 
-    // Keep the native pane rendered but remove it from the flex layout. Using
-    // display:none prevented Outlook from loading a message body to copy.
     parts.layout.style.setProperty("position", "relative", "important");
+    parts.divider.style.setProperty("display", "none", "important");
+    parts.messageList.style.setProperty("flex", "1 1 0px", "important");
+    parts.messageList.style.setProperty("height", "auto", "important");
+    parts.messageList.style.setProperty("max-height", "none", "important");
+    parts.messageList.style.setProperty("min-height", "0", "important");
+
+    // Once opened, the live reader belongs to the accordion until the user
+    // closes it or opens another message.
+    if (liveReader?.readingRegion === parts.readingRegion) return;
+
+    // Before a message is opened inline, keep Outlook's live reader rendered
+    // off-layout so it can prepare the next message.
     parts.readingRegion.style.setProperty("display", "block", "important");
     parts.readingRegion.style.setProperty("position", "absolute", "important");
     parts.readingRegion.style.setProperty("inset", "auto 0 0 0", "important");
     parts.readingRegion.style.setProperty("height", `${Math.max(preferredHeight, 340)}px`, "important");
     parts.readingRegion.style.setProperty("visibility", "hidden", "important");
     parts.readingRegion.style.setProperty("pointer-events", "none", "important");
-    parts.divider.style.setProperty("display", "none", "important");
-    parts.messageList.style.setProperty("flex", "1 1 0px", "important");
-    parts.messageList.style.setProperty("height", "auto", "important");
-    parts.messageList.style.setProperty("max-height", "none", "important");
-    parts.messageList.style.setProperty("min-height", "0", "important");
   }
 
   function applyPreviewMode(parts) {
