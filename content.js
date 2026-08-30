@@ -180,9 +180,13 @@
     copy.style.setProperty("min-height", "0", "important");
     copy.style.setProperty("overflow", "auto", "important");
     copy.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
-    copy.querySelectorAll("button, a, input, textarea, select").forEach((element) => {
-      element.setAttribute("tabindex", "-1");
-    });
+
+    // This is a static preview, not a second Outlook command surface. Remove
+    // controls whose original event handlers cannot be cloned faithfully.
+    copy.querySelectorAll('[role="toolbar"], button, [role="button"], input, textarea, select')
+      .forEach((element) => element.remove());
+    copy.querySelectorAll("a").forEach((element) => element.setAttribute("tabindex", "-1"));
+
     return copy;
   }
 
