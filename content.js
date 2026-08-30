@@ -12,6 +12,7 @@
   const PREVIEW_MODE = "preview";
   const ACCORDION_MODE = "accordion";
   const attachedDividers = new WeakSet();
+  const attachedLiveScrollRegions = new WeakSet();
   let preferredHeight = DEFAULT_HEIGHT;
   let readerMode = PREVIEW_MODE;
   let persistTimer;
@@ -228,11 +229,15 @@
   }
 
   function attachLiveReaderScroll(parts) {
-    if (liveReader?.scrollAttached) return;
-    liveReader.scrollAttached = true;
+    if (attachedLiveScrollRegions.has(parts.readingRegion)) return;
+    attachedLiveScrollRegions.add(parts.readingRegion);
 
     parts.readingRegion.addEventListener("wheel", (event) => {
-      if (readerMode !== ACCORDION_MODE || event.ctrlKey || !liveReader) return;
+      if (
+        readerMode !== ACCORDION_MODE ||
+        event.ctrlKey ||
+        liveReader?.readingRegion !== parts.readingRegion
+      ) return;
 
       const readerScrollTarget = getScrollableElement(parts.readingRegion);
       if (canScroll(readerScrollTarget, event.deltaY)) return;
@@ -277,7 +282,7 @@
     activeAccordion = accordion;
     activeAccordionKey = getMessageRowKey(row);
     activeAccordionRow = row;
-    liveReader = { parts, readingRegion: parts.readingRegion, scrollAttached: false };
+    liveReader = { parts, readingRegion: parts.readingRegion };
     positionLiveReader(parts, row);
     attachLiveReaderScroll(parts);
   }
