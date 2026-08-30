@@ -17,11 +17,10 @@
   let persistTimer;
   let activeAccordion;
   let activeAccordionKey;
+  let activeAccordionRow;
   let liveReader;
 
   function getParts() {
-    if (liveReader?.parts?.layout?.isConnected) return liveReader.parts;
-
     const readingPane = document.querySelector("#ReadingPaneContainerId");
     const readingRegion = readingPane?.parentElement;
     const layout = readingRegion?.parentElement;
@@ -115,21 +114,14 @@
   function restoreLiveReader() {
     if (!liveReader) return;
 
-    const { parts, placeholder, readingPane } = liveReader;
-    if (placeholder.isConnected) {
-      placeholder.replaceWith(readingPane);
-    } else if (parts.readingRegion?.isConnected) {
-      parts.readingRegion.append(readingPane);
+    const { readingRegion } = liveReader;
+    readingRegion.classList.remove("oh-accordion-live-region");
+    for (const property of [
+      "display", "position", "inset", "top", "left", "right", "bottom",
+      "height", "visibility", "pointer-events", "z-index"
+    ]) {
+      readingRegion.style.removeProperty(property);
     }
-
-    readingPane.classList.remove("oh-live-reading-pane");
-    readingPane.style.removeProperty("display");
-    readingPane.style.removeProperty("position");
-    readingPane.style.removeProperty("inset");
-    readingPane.style.removeProperty("height");
-    readingPane.style.removeProperty("visibility");
-    readingPane.style.removeProperty("pointer-events");
-    readingPane.style.removeProperty("overflow");
     liveReader = null;
   }
 
@@ -138,8 +130,8 @@
     activeAccordion?.remove();
     activeAccordion = null;
     activeAccordionKey = null;
+    activeAccordionRow = null;
   }
-
   function getMessageRowKey(row) {
     for (const attribute of ["data-convid", "data-message-id", "data-item-id"]) {
       const value = row.getAttribute(attribute);
@@ -168,7 +160,7 @@
   }
 
   function isActiveAccordionRow(row) {
-    return activeAccordion?.previousElementSibling === row ||
+    return activeAccordionRow === row ||
       matchesMessageRowKey(row, activeAccordionKey);
   }
 
@@ -206,6 +198,54 @@
     return deltaY < 0 ? element.scrollTop > 0 : element.scrollTop < maximum - 1;
   }
 
+  function getAccordionMetrics(parts, row) {
+    const layoutRect = parts.layout.getBoundingClientRect();
+    const rowRect = row.getBoundingClientRect();
+    const toolbarHeight = 33;
+    const gutter = 8;
+    const top = Math.max(0, rowRect.bottom - layoutRect.top);
+    const availableHeight = Math.max(
+      MIN_HEIGHT,
+      Math.min(680, layoutRect.height - top - toolbarHeight - gutter)
+    );
+
+    return { top, toolbarHeight, availableHeight, gutter };
+  }
+
+  function positionLiveReader(parts, row) {
+    if (!liveReader || !row?.isConnected) return;
+
+    const { top, toolbarHeight, availableHeight, gutter } = getAccordionMetrics(parts, row);
+    activeAccordion.style.setProperty("top", `${top}px`, "important");
+    activeAccordion.style.setProperty("left", `${gutter}px`, "important");
+    activeAccordion.style.setProperty("right", `${gutter}px`, "important");
+
+    const readerTop = top + toolbarHeight;
+    liveReader.readingRegion.style.setProperty("top", `${readerTop}px`, "important");
+    liveReader.readingRegion.style.setProperty("left", `${gutter}px`, "important");
+    liveReader.readingRegion.style.setProperty("right", `${gutter}px`, "important");
+    liveReader.readingRegion.style.setProperty("height", `${availableHeight}px`, "important");
+  }
+
+  function attachLiveReaderScroll(parts) {
+    if (liveReader?.scrollAttached) return;
+    liveReader.scrollAttached = true;
+
+    parts.readingRegion.addEventListener("wheel", (event) => {
+      if (readerMode !== ACCORDION_MODE || event.ctrlKey || !liveReader) return;
+
+      const readerScrollTarget = getScrollableElement(parts.readingRegion);
+      if (canScroll(readerScrollTarget, event.deltaY)) return;
+
+      const inboxScrollTarget = getScrollableElement(parts.messageList);
+      if (!canScroll(inboxScrollTarget, event.deltaY)) return;
+
+      inboxScrollTarget.scrollTop += event.deltaY;
+      event.preventDefault();
+      event.stopPropagation();
+    }, { capture: true, passive: false });
+  }
+
   function openAccordion(row) {
     if (readerMode !== ACCORDION_MODE || !row.isConnected) return;
     if (isActiveAccordionRow(row)) {
@@ -221,58 +261,29 @@
     accordion.className = "oh-accordion-reader";
     accordion.setAttribute("aria-label", "Opened message");
     accordion.innerHTML = '<div class="oh-accordion-toolbar"><span>Message preview</span><button type="button" class="oh-accordion-close" aria-label="Close message preview">×</button></div>';
-
-    // Move only the actual live reader element. Moving Outlook's outer layout
-    // wrapper breaks its calculated toolbar and message positioning.
-    const readingPane = parts.readingRegion.querySelector("#ReadingPaneContainerId");
-    if (!readingPane) return;
-
-    const placeholder = document.createComment("InboxRedux live reader");
-    readingPane.replaceWith(placeholder);
-    readingPane.classList.add("oh-live-reading-pane");
-    accordion.append(readingPane);
     accordion.querySelector(".oh-accordion-close").addEventListener("click", removeAccordion);
+    parts.layout.append(accordion);
 
-    // Scroll the live reader first. At either edge, explicitly hand the wheel
-    // motion to Outlook's virtualized inbox list instead of trapping it.
-    accordion.addEventListener("wheel", (event) => {
-      if (event.ctrlKey) return;
+    // Keep the actual Outlook reader in its original DOM location. This
+    // preserves built-in controls, selection, and message-specific behavior.
+    parts.readingRegion.classList.add("oh-accordion-live-region");
+    parts.readingRegion.style.setProperty("display", "block", "important");
+    parts.readingRegion.style.setProperty("position", "absolute", "important");
+    parts.readingRegion.style.setProperty("inset", "auto", "important");
+    parts.readingRegion.style.setProperty("visibility", "visible", "important");
+    parts.readingRegion.style.setProperty("pointer-events", "auto", "important");
+    parts.readingRegion.style.setProperty("z-index", "6", "important");
 
-      const readerScrollTarget = getScrollableElement(readingPane);
-      if (canScroll(readerScrollTarget, event.deltaY)) {
-        readerScrollTarget.scrollTop += event.deltaY;
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-
-      const currentParts = getParts();
-      const inboxScrollTarget = currentParts ? getScrollableElement(currentParts.messageList) : null;
-      if (!inboxScrollTarget || !canScroll(inboxScrollTarget, event.deltaY)) return;
-
-      inboxScrollTarget.scrollTop += event.deltaY;
-      event.preventDefault();
-      event.stopPropagation();
-    }, { capture: true, passive: false });
-
-    row.insertAdjacentElement("afterend", accordion);
     activeAccordion = accordion;
     activeAccordionKey = getMessageRowKey(row);
-    liveReader = { parts, placeholder, readingPane };
+    activeAccordionRow = row;
+    liveReader = { parts, readingRegion: parts.readingRegion, scrollAttached: false };
+    positionLiveReader(parts, row);
+    attachLiveReaderScroll(parts);
   }
   function attachAccordionListener() {
     if (document.documentElement.dataset.ohAccordionListener === "1") return;
     document.documentElement.dataset.ohAccordionListener = "1";
-
-    // Capture above Outlook's document-level handlers so text dragging inside
-    // the live reader begins a normal browser selection, not list selection.
-    window.addEventListener("pointerdown", (event) => {
-      if (readerMode !== ACCORDION_MODE || event.button !== 0) return;
-      const target = event.target instanceof Element ? event.target : null;
-      if (!target?.closest(".oh-live-reading-pane")) return;
-      if (target.closest("button, a, input, textarea, select")) return;
-      event.stopImmediatePropagation();
-    }, true);
 
     document.addEventListener("click", (event) => {
       if (readerMode !== ACCORDION_MODE || !activeAccordion) return;
@@ -317,7 +328,10 @@
 
     // Once opened, the live reader belongs to the accordion until the user
     // closes it or opens another message.
-    if (liveReader?.parts === parts) return;
+    if (liveReader?.readingRegion === parts.readingRegion) {
+      positionLiveReader(parts, activeAccordionRow);
+      return;
+    }
 
     // Before a message is opened inline, keep Outlook's live reader rendered
     // off-layout so it can prepare the next message.
