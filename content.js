@@ -118,7 +118,7 @@
     const { readingRegion } = liveReader;
     readingRegion.classList.remove("oh-accordion-live-region");
     for (const property of [
-      "display", "position", "inset", "top", "left", "right", "bottom",
+      "display", "position", "inset", "top", "left", "right", "bottom", "width",
       "height", "visibility", "pointer-events", "z-index"
     ]) {
       readingRegion.style.removeProperty(property);
@@ -202,29 +202,35 @@
   function getAccordionMetrics(parts, row) {
     const layoutRect = parts.layout.getBoundingClientRect();
     const rowRect = row.getBoundingClientRect();
+    const listRect = parts.messageList.getBoundingClientRect();
     const toolbarHeight = 33;
     const gutter = 0;
+    const left = Math.max(0, listRect.left - layoutRect.left);
+    // clientWidth deliberately excludes Outlook's vertical-scrollbar gutter.
+    const width = Math.max(0, Math.min(parts.messageList.clientWidth, layoutRect.right - listRect.left));
     const top = Math.max(0, rowRect.bottom - layoutRect.top);
     const availableHeight = Math.max(
       MIN_HEIGHT,
       Math.min(680, layoutRect.height - top - toolbarHeight - gutter)
     );
 
-    return { top, toolbarHeight, availableHeight, gutter };
+    return { top, left, width, toolbarHeight, availableHeight, gutter };
   }
 
   function positionLiveReader(parts, row) {
     if (!liveReader || !row?.isConnected) return;
 
-    const { top, toolbarHeight, availableHeight, gutter } = getAccordionMetrics(parts, row);
+    const { top, left, width, toolbarHeight, availableHeight } = getAccordionMetrics(parts, row);
     activeAccordion.style.setProperty("top", `${top}px`, "important");
-    activeAccordion.style.setProperty("left", `${gutter}px`, "important");
-    activeAccordion.style.setProperty("right", `${gutter}px`, "important");
+    activeAccordion.style.setProperty("left", `${left}px`, "important");
+    activeAccordion.style.setProperty("right", "auto", "important");
+    activeAccordion.style.setProperty("width", `${width}px`, "important");
 
     const readerTop = top + toolbarHeight;
     liveReader.readingRegion.style.setProperty("top", `${readerTop}px`, "important");
-    liveReader.readingRegion.style.setProperty("left", `${gutter}px`, "important");
-    liveReader.readingRegion.style.setProperty("right", `${gutter}px`, "important");
+    liveReader.readingRegion.style.setProperty("left", `${left}px`, "important");
+    liveReader.readingRegion.style.setProperty("right", "auto", "important");
+    liveReader.readingRegion.style.setProperty("width", `${width}px`, "important");
     liveReader.readingRegion.style.setProperty("height", `${availableHeight}px`, "important");
   }
 
@@ -355,6 +361,7 @@
     readingRegion?.style.removeProperty("position");
     readingRegion?.style.removeProperty("inset");
     readingRegion?.style.removeProperty("height");
+    readingRegion?.style.removeProperty("width");
     readingRegion?.style.removeProperty("visibility");
     readingRegion?.style.removeProperty("pointer-events");
     if (!parts) return;
