@@ -31,13 +31,22 @@
   text-transform: uppercase;
 }
 
-.oh-accordion-content {
-  box-sizing: border-box;
-  flex: 1 1 auto;
-  min-height: 0;
-  overscroll-behavior: contain;
-  overflow: auto;
-  scrollbar-gutter: stable;
+.oh-live-reading-region {
+  display: flex !important;
+  flex: 1 1 auto !important;
+  height: auto !important;
+  inset: auto !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  pointer-events: auto !important;
+  position: relative !important;
+  visibility: visible !important;
+}
+
+.oh-live-reading-region > #ReadingPaneContainerId {
+  flex: 1 1 auto !important;
+  height: 100% !important;
+  min-height: 0 !important;
 }
 
 .oh-accordion-close {
@@ -48,5 +57,3 @@
   font: 24px/16px system-ui, sans-serif;
   padding: 0 2px;
 }
-
-.oh-accordion-reader [tabindex="-1"] { pointer-events: none; }
