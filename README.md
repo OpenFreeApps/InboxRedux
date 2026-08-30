@@ -16,7 +16,7 @@ InboxRedux gives you a better way to read mail without leaving your inbox. Choos
 
 ## Privacy and permissions
 
-InboxRedux runs only on `outlook.office.com` and `outlook.office365.com`.
+InboxRedux runs only on `outlook.office.com`, `outlook.office365.com`, and `outlook.cloud.microsoft`.
 
 It does not send, collect, store remotely, or sell email content or personal data. It has no network, identity, clipboard, download, or account permissions. The extension uses local extension storage only for your selected preview mode and pane height.
 
