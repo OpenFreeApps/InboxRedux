@@ -5,6 +5,29 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const execFileAsync = promisify(execFile);
+
+async function createArchive(archivePath, sourceDirectory) {
+  if (process.platform === "win32") {
+    // Windows does not ship the Unix zip command, but PowerShell's
+    // Compress-Archive produces standard ZIP/XPI files.
+    await execFileAsync(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Compress-Archive -Path * -DestinationPath $env:INBOXREDUX_ARCHIVE_PATH -Force"
+      ],
+      {
+        cwd: sourceDirectory,
+        env: { ...process.env, INBOXREDUX_ARCHIVE_PATH: archivePath }
+      }
+    );
+    return;
+  }
+
+  await execFileAsync("zip", ["-qr", archivePath, "."], { cwd: sourceDirectory });
+}
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const builds = path.join(root, "builds");
 const extensionFiles = ["accordion.css", "content.js", "options.html", "options.js"];
@@ -36,6 +59,6 @@ for (const target of targets) {
   const archiveName = target === "firefox" ? "InboxRedux-firefox.xpi" : "InboxRedux-chrome.zip";
   const archivePath = path.join(builds, archiveName);
   await rm(archivePath, { force: true });
-  await execFileAsync("zip", ["-qr", archivePath, "."], { cwd: output });
+  await createArchive(archivePath, output);
   console.log(`Built ${path.relative(root, archivePath)}`);
 }
