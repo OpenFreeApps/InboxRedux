@@ -1,4 +1,5 @@
 const DEFAULT_HEIGHT = 340;
+const extensionApi = globalThis.browser ?? globalThis.chrome;
 const slider = document.querySelector("#height");
 const value = document.querySelector("#value");
 const heightOptions = document.querySelector("#height-options");
@@ -14,7 +15,7 @@ function showMode(mode) {
   heightOptions.hidden = mode !== "preview";
 }
 
-browser.storage.local.get(["readingPaneHeight", "readerMode"]).then((stored) => {
+extensionApi.storage.local.get(["readingPaneHeight", "readerMode"]).then((stored) => {
   show(stored.readingPaneHeight || DEFAULT_HEIGHT);
   showMode(stored.readerMode === "accordion" ? "accordion" : "preview");
 });
@@ -22,11 +23,11 @@ browser.storage.local.get(["readingPaneHeight", "readerMode"]).then((stored) => 
 slider.addEventListener("input", () => {
   const height = Number(slider.value);
   show(height);
-  browser.storage.local.set({ readingPaneHeight: height });
+  extensionApi.storage.local.set({ readingPaneHeight: height });
 });
 
 modes.forEach((input) => input.addEventListener("change", () => {
   if (!input.checked) return;
   showMode(input.value);
-  browser.storage.local.set({ readerMode: input.value });
+  extensionApi.storage.local.set({ readerMode: input.value });
 }));
