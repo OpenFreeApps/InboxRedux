@@ -358,7 +358,10 @@
     }, true);
 
     document.addEventListener("click", (event) => {
-      if (readerMode !== ACCORDION_MODE || !liveReader) return;
+      if (
+        readerMode !== ACCORDION_MODE ||
+        (!liveReader && !accordionPausedForOutlookAction)
+      ) return;
       const control = event.composedPath().find((node) =>
         node instanceof Element && node.matches("button, [role=button], a")
       ) || (event.target instanceof Element
