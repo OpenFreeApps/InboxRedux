@@ -186,14 +186,19 @@
     return copy;
   }
 
-  function getScrollableAccordionElement(content) {
-    const candidates = [content, ...content.querySelectorAll("*")];
+  function getScrollableElement(root) {
+    const candidates = [root, ...root.querySelectorAll("*")];
 
     return candidates.find((element) => {
       const overflowY = getComputedStyle(element).overflowY;
       return element.scrollHeight > element.clientHeight &&
         (overflowY === "auto" || overflowY === "scroll");
-    }) || content;
+    }) || root;
+  }
+
+  function canScroll(element, deltaY) {
+    const maximum = Math.max(0, element.scrollHeight - element.clientHeight);
+    return deltaY < 0 ? element.scrollTop > 0 : element.scrollTop < maximum - 1;
   }
 
   function openAccordion(row) {
@@ -214,19 +219,26 @@
     accordion.append(content);
     accordion.querySelector(".oh-accordion-close").addEventListener("click", removeAccordion);
 
-    // OWA's virtualized message list otherwise consumes wheel events before
-    // the copied reader can scroll.
+    // Scroll the copied reader first. At either edge, explicitly hand the
+    // wheel motion to Outlook's virtualized inbox list instead of trapping it.
     accordion.addEventListener("wheel", (event) => {
       if (event.ctrlKey) return;
 
-      const scrollTarget = getScrollableAccordionElement(content);
-      const before = scrollTarget.scrollTop;
-      scrollTarget.scrollTop += event.deltaY;
-
-      if (scrollTarget.scrollTop !== before) {
+      const readerScrollTarget = getScrollableElement(content);
+      if (canScroll(readerScrollTarget, event.deltaY)) {
+        readerScrollTarget.scrollTop += event.deltaY;
         event.preventDefault();
         event.stopPropagation();
+        return;
       }
+
+      const parts = getParts();
+      const inboxScrollTarget = parts ? getScrollableElement(parts.messageList) : null;
+      if (!inboxScrollTarget || !canScroll(inboxScrollTarget, event.deltaY)) return;
+
+      inboxScrollTarget.scrollTop += event.deltaY;
+      event.preventDefault();
+      event.stopPropagation();
     }, { passive: false });
 
     row.insertAdjacentElement("afterend", accordion);
