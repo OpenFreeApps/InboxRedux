@@ -1,59 +1,39 @@
 .oh-accordion-reader {
-  background: var(--neutralLighterAlt, #fff);
-  border: 1px solid var(--neutralQuaternaryAlt, #d6d6d6);
-  border-left: 3px solid #2564cf;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, .14);
   box-sizing: border-box;
-  color: var(--neutralPrimary, #242424);
-  display: flex;
-  flex-direction: column;
-  height: min(65vh, 680px);
-  margin: 0 8px 8px;
-  max-height: calc(100vh - 150px);
-  min-height: 360px;
-  overflow: hidden;
-  overscroll-behavior: contain;
-  position: relative;
-  z-index: 5;
+  pointer-events: none;
+  position: absolute;
+  z-index: 7;
 }
 
 .oh-accordion-toolbar {
   align-items: center;
   background: #f5f7fb;
-  border-bottom: 1px solid #d6d6d6;
+  border: 1px solid #d6d6d6;
+  border-left: 3px solid #2564cf;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, .14);
   color: #4a4a4a;
   display: flex;
-  flex: 0 0 auto;
-  font: 600 12px/1 system-ui, sans-serif;
+  height: 33px;
   justify-content: space-between;
   letter-spacing: .02em;
-  padding: 7px 10px;
+  padding: 0 10px;
+  pointer-events: auto;
+  font: 600 12px/1 system-ui, sans-serif;
   text-transform: uppercase;
 }
 
-.oh-live-reading-pane,
-.oh-live-reading-pane * {
-  -moz-user-select: text !important;
-  -webkit-user-select: text !important;
-  user-select: text !important;
+.oh-accordion-live-region {
+  background: var(--neutralLighterAlt, #fff);
+  border: 1px solid var(--neutralQuaternaryAlt, #d6d6d6);
+  border-left: 3px solid #2564cf;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, .14);
+  box-sizing: border-box;
+  overflow: hidden !important;
 }
 
-.oh-live-reading-pane button,
-.oh-live-reading-pane input,
-.oh-live-reading-pane select {
-  user-select: none !important;
-}
-
-.oh-live-reading-pane {
-  display: block !important;
-  flex: 1 1 auto !important;
+.oh-accordion-live-region > #ReadingPaneContainerId {
   height: 100% !important;
-  inset: auto !important;
   min-height: 0 !important;
-  overflow: auto !important;
-  pointer-events: auto !important;
-  position: relative !important;
-  visibility: visible !important;
 }
 
 .oh-accordion-close {
