@@ -203,7 +203,7 @@
     const layoutRect = parts.layout.getBoundingClientRect();
     const rowRect = row.getBoundingClientRect();
     const toolbarHeight = 33;
-    const gutter = 8;
+    const gutter = 0;
     const top = Math.max(0, rowRect.bottom - layoutRect.top);
     const availableHeight = Math.max(
       MIN_HEIGHT,
