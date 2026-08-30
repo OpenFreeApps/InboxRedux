@@ -235,11 +235,16 @@
     const layoutRect = parts.layout.getBoundingClientRect();
     const rowRect = row.getBoundingClientRect();
     const listRect = parts.messageList.getBoundingClientRect();
+    const listScroller = getScrollableElement(parts.messageList);
+    const scrollerRect = listScroller.getBoundingClientRect();
+    const scrollbarWidth = Math.max(0, listScroller.offsetWidth - listScroller.clientWidth);
     const toolbarHeight = 33;
     const gutter = 0;
     const left = Math.max(0, listRect.left - layoutRect.left);
-    // clientWidth deliberately excludes Outlook's vertical-scrollbar gutter.
-    const width = Math.max(0, Math.min(parts.messageList.clientWidth, layoutRect.right - listRect.left));
+    // Use the scrollable content edge. The wrapper's rectangle includes the
+    // scrollbar track, which Outlook leaves outside the message rows.
+    const contentRight = Math.min(layoutRect.right, scrollerRect.right - scrollbarWidth);
+    const width = Math.max(0, contentRight - listRect.left);
     const top = Math.max(0, rowRect.bottom - layoutRect.top);
     const availableHeight = Math.max(
       MIN_HEIGHT,
@@ -342,13 +347,18 @@
 
     document.addEventListener("click", (event) => {
       if (readerMode !== ACCORDION_MODE || !liveReader) return;
-      const control = event.target instanceof Element
+      const control = event.composedPath().find((node) =>
+        node instanceof Element && node.matches("button, [role=button], a")
+      ) || (event.target instanceof Element
         ? event.target.closest("button, [role=button], a")
-        : null;
+        : null);
       const label = [
         control?.getAttribute("aria-label"),
         control?.getAttribute("title"),
-        control?.textContent
+        control?.textContent,
+        ...event.composedPath()
+          .filter((node) => node instanceof Element)
+          .map((node) => node.getAttribute?.("aria-label") || node.getAttribute?.("title"))
       ].filter(Boolean).join(" ").trim();
 
       // These actions replace the reader with Outlook's compose surface.
