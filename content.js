@@ -233,6 +233,15 @@
     accordion.append(readingPane);
     accordion.querySelector(".oh-accordion-close").addEventListener("click", removeAccordion);
 
+    // OWA's virtualized message list can consume a drag before browser text
+    // selection begins. Stop that list-level gesture without preventing the
+    // default selection behavior inside the live reader.
+    accordion.addEventListener("pointerdown", (event) => {
+      if (event.button !== 0) return;
+      if (event.target.closest("button, a, input, textarea, select")) return;
+      event.stopPropagation();
+    }, true);
+
     // Scroll the live reader first. At either edge, explicitly hand the wheel
     // motion to Outlook's virtualized inbox list instead of trapping it.
     accordion.addEventListener("wheel", (event) => {
