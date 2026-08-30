@@ -12,6 +12,7 @@
   max-height: calc(100vh - 150px);
   min-height: 360px;
   overflow: hidden;
+  overscroll-behavior: contain;
   position: relative;
   z-index: 5;
 }
@@ -34,7 +35,9 @@
   box-sizing: border-box;
   flex: 1 1 auto;
   min-height: 0;
+  overscroll-behavior: contain;
   overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .oh-accordion-close {
