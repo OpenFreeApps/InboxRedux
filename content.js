@@ -379,7 +379,7 @@
 
       // Outlook's compose footer exposes Discard (and occasionally Cancel).
       // This is the explicit point at which it is safe to reapply Accordion.
-      if (accordionPausedForOutlookAction && /\b(discard|cancel)\b/i.test(label)) {
+      if (accordionPausedForOutlookAction && /\b(close|discard|cancel)\b/i.test(label)) {
         resumeAccordionAfterDiscard();
       }
     }, true);
