@@ -5,9 +5,13 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, .14);
   box-sizing: border-box;
   color: var(--neutralPrimary, #242424);
+  display: flex;
+  flex-direction: column;
+  height: min(65vh, 680px);
   margin: 0 8px 8px;
-  max-height: min(600px, 65vh);
-  overflow: auto;
+  max-height: calc(100vh - 150px);
+  min-height: 360px;
+  overflow: hidden;
   position: relative;
   z-index: 5;
 }
@@ -18,11 +22,19 @@
   border-bottom: 1px solid #d6d6d6;
   color: #4a4a4a;
   display: flex;
+  flex: 0 0 auto;
   font: 600 12px/1 system-ui, sans-serif;
   justify-content: space-between;
   letter-spacing: .02em;
   padding: 7px 10px;
   text-transform: uppercase;
+}
+
+.oh-accordion-content {
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
 }
 
 .oh-accordion-close {
