@@ -60,7 +60,7 @@ Unpacked Chrome extensions remain installed until you remove them, but Chrome wi
 
 The source code is shared. The build script creates browser-specific manifests so Chrome never receives Firefox-only Gecko metadata.
 
-Requirements: Node.js 18+ and the `zip` command.
+Requirements: Node.js 18+. Windows uses its built-in PowerShell ZIP support; macOS/Linux use the standard `zip` command.
 
 ```bash
 npm run build
