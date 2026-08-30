@@ -7,7 +7,8 @@ import { fileURLToPath } from "node:url";
 const execFileAsync = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const builds = path.join(root, "builds");
-const extensionFiles = ["accordion.css", "content.js", "options.html", "options.js"];\nconst extensionDirectories = ["icons"];
+const extensionFiles = ["accordion.css", "content.js", "options.html", "options.js"];
+const extensionDirectories = ["icons"];
 const requestedTarget = process.argv[2];
 const targets = requestedTarget ? [requestedTarget] : ["firefox", "chrome"];
 
@@ -21,7 +22,10 @@ for (const target of targets) {
   const output = path.join(builds, target);
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
-  await Promise.all([\n    ...extensionFiles.map((file) => cp(path.join(root, file), path.join(output, file))),\n    ...extensionDirectories.map((directory) => cp(path.join(root, directory), path.join(output, directory), { recursive: true }))\n  ]);
+  await Promise.all([
+    ...extensionFiles.map((file) => cp(path.join(root, file), path.join(output, file))),
+    ...extensionDirectories.map((directory) => cp(path.join(root, directory), path.join(output, directory), { recursive: true }))
+  ]);
 
   const manifest = structuredClone(baseManifest);
   if (target === "firefox") {
