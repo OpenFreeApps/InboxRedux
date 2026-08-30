@@ -166,6 +166,16 @@
     restoreNormalOutlookLayout();
   }
 
+  function resumeAccordionAfterDiscard() {
+    // Let Outlook finish removing its compose surface before returning its
+    // reader to Accordion mode.
+    window.setTimeout(() => {
+      if (!accordionPausedForOutlookAction) return;
+      accordionPausedForOutlookAction = false;
+      update();
+    }, 350);
+  }
+
 
   function getMessageRowKey(row) {
     for (const attribute of ["data-convid", "data-message-id", "data-item-id"]) {
@@ -366,6 +376,12 @@
       // These actions replace the reader with Outlook's compose surface.
       // Restore its normal layout before Outlook handles the command.
       if (/\b(reply(?: all)?|forward)\b/i.test(label)) handOffToOutlook();
+
+      // Outlook's compose footer exposes Discard (and occasionally Cancel).
+      // This is the explicit point at which it is safe to reapply Accordion.
+      if (accordionPausedForOutlookAction && /\b(discard|cancel)\b/i.test(label)) {
+        resumeAccordionAfterDiscard();
+      }
     }, true);
 
     document.addEventListener("dblclick", (event) => {
