@@ -7,6 +7,7 @@
 
 .oh-accordion-toolbar {
   align-items: center;
+  box-sizing: border-box;
   background: #f5f7fb;
   border: 1px solid #d6d6d6;
   border-left: 3px solid #2564cf;
@@ -20,10 +21,12 @@
   pointer-events: auto;
   font: 600 12px/1 system-ui, sans-serif;
   text-transform: uppercase;
+  width: 100%;
 }
 
 .oh-accordion-live-region {
-  background: var(--neutralLighterAlt, #fff);
+  background:
+ var(--neutralLighterAlt, #fff);
   border: 1px solid var(--neutralQuaternaryAlt, #d6d6d6);
   border-left: 3px solid #2564cf;
   box-shadow: 0 4px 15px rgba(0, 0, 0, .14);
