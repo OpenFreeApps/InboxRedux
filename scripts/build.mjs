@@ -22,7 +22,7 @@ async function createArchive(archivePath, sourceDirectory) {
           "Add-Type -AssemblyName System.IO.Compression.FileSystem",
           "$archive = [System.IO.Compression.ZipFile]::Open($env:INBOXREDUX_ARCHIVE_PATH, [System.IO.Compression.ZipArchiveMode]::Create)",
           "Get-ChildItem -File -Recurse | ForEach-Object {",
-          "  $relativePath = $_.FullName.Substring($PWD.Path.Length + 1).Replace('\\\\', '/')",
+          "  $relativePath = $_.FullName.Substring($PWD.Path.Length + 1).Replace('\\', '/')",
           "  [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($archive, $_.FullName, $relativePath, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null",
           "}",
           "$archive.Dispose()"
