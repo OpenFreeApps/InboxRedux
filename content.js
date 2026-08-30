@@ -21,7 +21,6 @@
   let activeAccordionRow;
   let liveReader;
   let accordionPausedForOutlookAction = false;
-  let outlookComposeWasOpen = false;
 
   function getParts() {
     const readingPane = document.querySelector("#ReadingPaneContainerId");
@@ -163,40 +162,11 @@
 
   function handOffToOutlook() {
     accordionPausedForOutlookAction = true;
-    outlookComposeWasOpen = false;
     removeAccordion();
     restoreNormalOutlookLayout();
   }
 
-  function hasVisibleComposeSurface() {
-    const candidates = document.querySelectorAll(
-      '[role="dialog"] [contenteditable="true"], ' +
-      '[contenteditable="true"][role="textbox"], ' +
-      '[contenteditable="true"][aria-label*="message" i], ' +
-      '[contenteditable="true"][aria-label*="body" i]'
-    );
 
-    return [...candidates].some((element) => {
-      const style = getComputedStyle(element);
-      return style.display !== "none" && style.visibility !== "hidden" &&
-        element.getBoundingClientRect().width > 0 && element.getBoundingClientRect().height > 0;
-    });
-  }
-
-  function resumeAccordionAfterComposeCloses() {
-    if (!accordionPausedForOutlookAction) return;
-    if (hasVisibleComposeSurface()) {
-      outlookComposeWasOpen = true;
-      return;
-    }
-
-    // Do not resume during the brief gap between clicking Forward and Outlook
-    // mounting its compose surface. Only resume after it was actually visible.
-    if (!outlookComposeWasOpen) return;
-
-    accordionPausedForOutlookAction = false;
-    outlookComposeWasOpen = false;
-  }
   function getMessageRowKey(row) {
     for (const attribute of ["data-convid", "data-message-id", "data-item-id"]) {
       const value = row.getAttribute(attribute);
@@ -412,7 +382,6 @@
       // The first click selects the message and Outlook renders its native
       // reading pane. Clone that already-rendered content after it settles.
       accordionPausedForOutlookAction = false;
-      outlookComposeWasOpen = false;
       window.setTimeout(() => openAccordion(row), 450);
     }, true);
   }
@@ -422,7 +391,6 @@
     // resizable-pane layout. That keeps the reader usable across OWA updates.
     attachAccordionListener();
 
-    resumeAccordionAfterComposeCloses();
     if (accordionPausedForOutlookAction) {
       restoreNormalOutlookLayout();
       return;
