@@ -1,4 +1,5 @@
 # Firefox developer tools and operating-system metadata
 web-ext-artifacts/
+builds/
 *.xpi
 .DS_Store
