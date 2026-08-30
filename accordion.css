@@ -1,0 +1,37 @@
+.oh-accordion-reader {
+  background: var(--neutralLighterAlt, #fff);
+  border: 1px solid var(--neutralQuaternaryAlt, #d6d6d6);
+  border-left: 3px solid #2564cf;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, .14);
+  box-sizing: border-box;
+  color: var(--neutralPrimary, #242424);
+  margin: 0 8px 8px;
+  max-height: min(600px, 65vh);
+  overflow: auto;
+  position: relative;
+  z-index: 5;
+}
+
+.oh-accordion-toolbar {
+  align-items: center;
+  background: #f5f7fb;
+  border-bottom: 1px solid #d6d6d6;
+  color: #4a4a4a;
+  display: flex;
+  font: 600 12px/1 system-ui, sans-serif;
+  justify-content: space-between;
+  letter-spacing: .02em;
+  padding: 7px 10px;
+  text-transform: uppercase;
+}
+
+.oh-accordion-close {
+  background: transparent;
+  border: 0;
+  color: #444;
+  cursor: pointer;
+  font: 24px/16px system-ui, sans-serif;
+  padding: 0 2px;
+}
+
+.oh-accordion-reader [tabindex="-1"] { pointer-events: none; }
