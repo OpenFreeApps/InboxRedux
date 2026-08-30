@@ -115,20 +115,21 @@
   function restoreLiveReader() {
     if (!liveReader) return;
 
-    const { parts, placeholder, readingRegion } = liveReader;
+    const { parts, placeholder, readingPane } = liveReader;
     if (placeholder.isConnected) {
-      placeholder.replaceWith(readingRegion);
-    } else if (parts.divider?.isConnected) {
-      parts.divider.insertAdjacentElement("afterend", readingRegion);
+      placeholder.replaceWith(readingPane);
+    } else if (parts.readingRegion?.isConnected) {
+      parts.readingRegion.append(readingPane);
     }
 
-    readingRegion.classList.remove("oh-live-reading-region");
-    readingRegion.style.removeProperty("display");
-    readingRegion.style.removeProperty("position");
-    readingRegion.style.removeProperty("inset");
-    readingRegion.style.removeProperty("height");
-    readingRegion.style.removeProperty("visibility");
-    readingRegion.style.removeProperty("pointer-events");
+    readingPane.classList.remove("oh-live-reading-pane");
+    readingPane.style.removeProperty("display");
+    readingPane.style.removeProperty("position");
+    readingPane.style.removeProperty("inset");
+    readingPane.style.removeProperty("height");
+    readingPane.style.removeProperty("visibility");
+    readingPane.style.removeProperty("pointer-events");
+    readingPane.style.removeProperty("overflow");
     liveReader = null;
   }
 
@@ -221,12 +222,15 @@
     accordion.setAttribute("aria-label", "Opened message");
     accordion.innerHTML = '<div class="oh-accordion-toolbar"><span>Message preview</span><button type="button" class="oh-accordion-close" aria-label="Close message preview">×</button></div>';
 
-    // Re-parent the live Outlook reader instead of cloning it. Its event
-    // handlers and controls—including blocked-content approval—stay intact.
+    // Move only the actual live reader element. Moving Outlook's outer layout
+    // wrapper breaks its calculated toolbar and message positioning.
+    const readingPane = parts.readingRegion.querySelector("#ReadingPaneContainerId");
+    if (!readingPane) return;
+
     const placeholder = document.createComment("InboxRedux live reader");
-    parts.readingRegion.replaceWith(placeholder);
-    parts.readingRegion.classList.add("oh-live-reading-region");
-    accordion.append(parts.readingRegion);
+    readingPane.replaceWith(placeholder);
+    readingPane.classList.add("oh-live-reading-pane");
+    accordion.append(readingPane);
     accordion.querySelector(".oh-accordion-close").addEventListener("click", removeAccordion);
 
     // Scroll the live reader first. At either edge, explicitly hand the wheel
@@ -234,7 +238,7 @@
     accordion.addEventListener("wheel", (event) => {
       if (event.ctrlKey) return;
 
-      const readerScrollTarget = getScrollableElement(parts.readingRegion);
+      const readerScrollTarget = getScrollableElement(readingPane);
       if (canScroll(readerScrollTarget, event.deltaY)) {
         readerScrollTarget.scrollTop += event.deltaY;
         event.preventDefault();
@@ -254,7 +258,7 @@
     row.insertAdjacentElement("afterend", accordion);
     activeAccordion = accordion;
     activeAccordionKey = getMessageRowKey(row);
-    liveReader = { parts, placeholder, readingRegion: parts.readingRegion };
+    liveReader = { parts, placeholder, readingPane };
   }
   function attachAccordionListener() {
     if (document.documentElement.dataset.ohAccordionListener === "1") return;
@@ -303,7 +307,7 @@
 
     // Once opened, the live reader belongs to the accordion until the user
     // closes it or opens another message.
-    if (liveReader?.readingRegion === parts.readingRegion) return;
+    if (liveReader?.parts === parts) return;
 
     // Before a message is opened inline, keep Outlook's live reader rendered
     // off-layout so it can prepare the next message.
