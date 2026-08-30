@@ -3,3 +3,5 @@ web-ext-artifacts/
 builds/
 *.xpi
 .DS_Store
+.idea/
+*.zip
