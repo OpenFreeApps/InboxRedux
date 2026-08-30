@@ -20,6 +20,7 @@
   let activeAccordionKey;
   let activeAccordionRow;
   let liveReader;
+  let accordionPausedForOutlookAction = false;
 
   function getParts() {
     const readingPane = document.querySelector("#ReadingPaneContainerId");
@@ -132,6 +133,37 @@
     activeAccordion = null;
     activeAccordionKey = null;
     activeAccordionRow = null;
+  }
+
+  function restoreNormalOutlookLayout() {
+    const parts = getParts();
+    const readingRegion = document.querySelector("#ReadingPaneContainerId")?.parentElement;
+
+    readingRegion?.style.removeProperty("display");
+    readingRegion?.style.removeProperty("position");
+    readingRegion?.style.removeProperty("inset");
+    readingRegion?.style.removeProperty("top");
+    readingRegion?.style.removeProperty("left");
+    readingRegion?.style.removeProperty("right");
+    readingRegion?.style.removeProperty("bottom");
+    readingRegion?.style.removeProperty("width");
+    readingRegion?.style.removeProperty("height");
+    readingRegion?.style.removeProperty("visibility");
+    readingRegion?.style.removeProperty("pointer-events");
+    readingRegion?.style.removeProperty("z-index");
+
+    if (!parts) return;
+    parts.layout.style.removeProperty("position");
+    parts.divider.style.removeProperty("display");
+    for (const property of ["flex", "height", "max-height", "min-height"]) {
+      parts.messageList.style.removeProperty(property);
+    }
+  }
+
+  function handOffToOutlook() {
+    accordionPausedForOutlookAction = true;
+    removeAccordion();
+    restoreNormalOutlookLayout();
   }
   function getMessageRowKey(row) {
     for (const attribute of ["data-convid", "data-message-id", "data-item-id"]) {
@@ -272,7 +304,13 @@
     accordion.className = "oh-accordion-reader";
     accordion.setAttribute("aria-label", "Opened message");
     accordion.innerHTML = '<div class="oh-accordion-toolbar"><span>Message preview</span><button type="button" class="oh-accordion-close" aria-label="Close message preview">×</button></div>';
-    accordion.querySelector(".oh-accordion-close").addEventListener("click", removeAccordion);
+    accordion.querySelector(".oh-accordion-close").addEventListener("click", () => {
+      removeAccordion();
+      // With no opened item, remove the native reader from layout entirely.
+      // This avoids leaving an invisible absolute pane over the message list.
+      const currentParts = getParts();
+      currentParts?.readingRegion.style.setProperty("display", "none", "important");
+    });
     parts.layout.append(accordion);
 
     // Keep the actual Outlook reader in its original DOM location. This
@@ -302,6 +340,22 @@
       if (row && !isActiveAccordionRow(row)) removeAccordion();
     }, true);
 
+    document.addEventListener("click", (event) => {
+      if (readerMode !== ACCORDION_MODE || !liveReader) return;
+      const control = event.target instanceof Element
+        ? event.target.closest("button, [role=button], a")
+        : null;
+      const label = [
+        control?.getAttribute("aria-label"),
+        control?.getAttribute("title"),
+        control?.textContent
+      ].filter(Boolean).join(" ").trim();
+
+      // These actions replace the reader with Outlook's compose surface.
+      // Restore its normal layout before Outlook handles the command.
+      if (/\b(reply(?: all)?|forward)\b/i.test(label)) handOffToOutlook();
+    }, true);
+
     document.addEventListener("dblclick", (event) => {
       if (readerMode !== ACCORDION_MODE) return;
       const row = getMessageRow(event.target, event.composedPath());
@@ -315,6 +369,7 @@
 
       // The first click selects the message and Outlook renders its native
       // reading pane. Clone that already-rendered content after it settles.
+      accordionPausedForOutlookAction = false;
       window.setTimeout(() => openAccordion(row), 450);
     }, true);
   }
@@ -323,6 +378,11 @@
     // Attach regardless of whether Outlook's current wrappers match our
     // resizable-pane layout. That keeps the reader usable across OWA updates.
     attachAccordionListener();
+
+    if (accordionPausedForOutlookAction) {
+      restoreNormalOutlookLayout();
+      return;
+    }
 
     if (!parts) {
       const readingRegion = document.querySelector("#ReadingPaneContainerId")?.parentElement;
@@ -344,14 +404,15 @@
       return;
     }
 
-    // Before a message is opened inline, keep Outlook's live reader rendered
-    // off-layout so it can prepare the next message.
-    parts.readingRegion.style.setProperty("display", "block", "important");
-    parts.readingRegion.style.setProperty("position", "absolute", "important");
-    parts.readingRegion.style.setProperty("inset", "auto 0 0 0", "important");
-    parts.readingRegion.style.setProperty("height", `${Math.max(preferredHeight, 340)}px`, "important");
-    parts.readingRegion.style.setProperty("visibility", "hidden", "important");
-    parts.readingRegion.style.setProperty("pointer-events", "none", "important");
+    // With no accordion open, remove the native reader from layout. It is
+    // restored by openAccordion after Outlook selects the double-clicked row.
+    parts.readingRegion.style.setProperty("display", "none", "important");
+    parts.readingRegion.style.removeProperty("position");
+    parts.readingRegion.style.removeProperty("inset");
+    parts.readingRegion.style.removeProperty("width");
+    parts.readingRegion.style.removeProperty("height");
+    parts.readingRegion.style.removeProperty("visibility");
+    parts.readingRegion.style.removeProperty("pointer-events");
   }
 
   function applyPreviewMode(parts) {
