@@ -176,6 +176,29 @@
     }, 350);
   }
 
+  function resumeAccordionAfterSend() {
+    let attempts = 40;
+
+    const checkForClosedComposeTab = () => {
+      if (!accordionPausedForOutlookAction || attempts-- <= 0) return;
+
+      // The Forward compose tab owns the only Close tag in Outlook's tablist.
+      // Sending is asynchronous, so wait until Outlook has removed that tab.
+      const composeTabIsOpen = Boolean(
+        document.querySelector('[role="tablist"] button[aria-label="Close"]')
+      );
+      if (composeTabIsOpen) {
+        window.setTimeout(checkForClosedComposeTab, 250);
+        return;
+      }
+
+      accordionPausedForOutlookAction = false;
+      update();
+    };
+
+    window.setTimeout(checkForClosedComposeTab, 250);
+  }
+
 
   function getMessageRowKey(row) {
     for (const attribute of ["data-convid", "data-message-id", "data-item-id"]) {
@@ -384,6 +407,9 @@
       // This is the explicit point at which it is safe to reapply Accordion.
       if (accordionPausedForOutlookAction && /\b(close|discard|cancel)\b/i.test(label)) {
         resumeAccordionAfterDiscard();
+      }
+      if (accordionPausedForOutlookAction && /\bsend\b/i.test(label)) {
+        resumeAccordionAfterSend();
       }
     }, true);
 
