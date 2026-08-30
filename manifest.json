@@ -3,7 +3,9 @@
   "name": "InboxRedux",
   "version": "0.2.0",
   "description": "Flexible message-preview options for Outlook on the web.",
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://outlook.office.com/*",
     "https://outlook.office365.com/*"
@@ -14,13 +16,24 @@
         "https://outlook.office.com/*",
         "https://outlook.office365.com/*"
       ],
-      "js": ["content.js"],
-      "css": ["accordion.css"],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "accordion.css"
+      ],
       "run_at": "document_idle"
     }
   ],
   "options_ui": {
     "page": "options.html",
     "open_in_tab": true
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "96": "icons/icon-96.png",
+    "128": "icons/icon-128.png"
   }
 }
