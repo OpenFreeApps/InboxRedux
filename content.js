@@ -134,10 +134,13 @@
 
   function cloneReadingPane() {
     const pane = document.querySelector("#ReadingPaneContainerId");
-    const source = pane?.firstElementChild;
-    if (!source) return null;
+    if (!pane) return null;
 
-    const copy = source.cloneNode(true);
+    // Clone the entire pane rather than only its first wrapper. Current OWA
+    // builds place the actual message body in a sibling wrapper.
+    const copy = pane.cloneNode(true);
+    copy.removeAttribute("id");
+    copy.classList.add("oh-accordion-content");
     copy.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
     copy.querySelectorAll("button, a, input, textarea, select").forEach((element) => {
       element.setAttribute("tabindex", "-1");
@@ -198,9 +201,19 @@
       return;
     }
 
-    parts.readingRegion.style.setProperty("display", "none", "important");
+    // Keep the native pane rendered but remove it from the flex layout. Using
+    // display:none prevented Outlook from loading a message body to copy.
+    parts.layout.style.setProperty("position", "relative", "important");
+    parts.readingRegion.style.setProperty("display", "block", "important");
+    parts.readingRegion.style.setProperty("position", "absolute", "important");
+    parts.readingRegion.style.setProperty("inset", "auto 0 0 0", "important");
+    parts.readingRegion.style.setProperty("height", `${Math.max(preferredHeight, 340)}px`, "important");
+    parts.readingRegion.style.setProperty("visibility", "hidden", "important");
+    parts.readingRegion.style.setProperty("pointer-events", "none", "important");
     parts.divider.style.setProperty("display", "none", "important");
     parts.messageList.style.setProperty("flex", "1 1 0px", "important");
+    parts.messageList.style.setProperty("height", "auto", "important");
+    parts.messageList.style.setProperty("max-height", "none", "important");
     parts.messageList.style.setProperty("min-height", "0", "important");
   }
 
@@ -208,9 +221,17 @@
     removeAccordion();
     const readingRegion = document.querySelector("#ReadingPaneContainerId")?.parentElement;
     readingRegion?.style.removeProperty("display");
+    readingRegion?.style.removeProperty("position");
+    readingRegion?.style.removeProperty("inset");
+    readingRegion?.style.removeProperty("height");
+    readingRegion?.style.removeProperty("visibility");
+    readingRegion?.style.removeProperty("pointer-events");
     if (!parts) return;
 
+    parts.layout.style.removeProperty("position");
     parts.divider.style.removeProperty("display");
+    parts.messageList.style.removeProperty("height");
+    parts.messageList.style.removeProperty("max-height");
     applyHeight(parts);
     attachDivider(parts);
   }
