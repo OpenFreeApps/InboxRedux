@@ -1,6 +1,9 @@
 (() => {
   "use strict";
 
+  // Firefox exposes the WebExtension API as `browser`; Chrome uses `chrome`.
+  const extensionApi = globalThis.browser ?? globalThis.chrome;
+
   const DEFAULT_HEIGHT = 340;
   const MIN_HEIGHT = 180;
   const MIN_LIST_HEIGHT = 180;
@@ -49,7 +52,7 @@
     preferredHeight = height;
     clearTimeout(persistTimer);
     persistTimer = setTimeout(() => {
-      browser.storage.local.set({ [STORAGE_KEY]: preferredHeight });
+      extensionApi.storage.local.set({ [STORAGE_KEY]: preferredHeight });
     }, 150);
   }
 
@@ -182,13 +185,13 @@
     else applyPreviewMode(parts);
   }
 
-  browser.storage.local.get([STORAGE_KEY, MODE_KEY]).then((stored) => {
+  extensionApi.storage.local.get([STORAGE_KEY, MODE_KEY]).then((stored) => {
     if (Number.isFinite(stored[STORAGE_KEY])) preferredHeight = stored[STORAGE_KEY];
     if (stored[MODE_KEY] === ACCORDION_MODE) readerMode = ACCORDION_MODE;
     update();
   });
 
-  browser.storage.onChanged.addListener((changes, areaName) => {
+  extensionApi.storage.onChanged.addListener((changes, areaName) => {
     if (areaName !== "local") return;
     if (changes[STORAGE_KEY]) preferredHeight = changes[STORAGE_KEY].newValue || DEFAULT_HEIGHT;
     if (changes[MODE_KEY]) readerMode = changes[MODE_KEY].newValue === ACCORDION_MODE ? ACCORDION_MODE : PREVIEW_MODE;
