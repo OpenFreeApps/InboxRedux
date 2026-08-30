@@ -1,6 +1,6 @@
 {
   "name": "inboxredux",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "description": "Build helpers for the InboxRedux Firefox and Chrome extension packages.",
   "scripts": {
