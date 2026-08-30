@@ -113,10 +113,23 @@
     activeAccordion = null;
   }
 
-  function getMessageRow(target) {
-    // Outlook presently exposes message rows as options. The data-attribute
-    // fallbacks cover the two other row shapes seen in recent OWA builds.
-    return target.closest('[role="option"], [data-convid], [data-message-id], [data-item-id]');
+  function getMessageRow(target, eventPath = []) {
+    // Outlook has moved its message rows into web-component shadow trees in
+    // some builds. target.closest() cannot cross that boundary, but a
+    // composed event path retains the original row element.
+    const rowSelector = '[role="option"], [data-convid], [data-message-id], [data-item-id]';
+
+    const directRow = target instanceof Element ? target.closest(rowSelector) : null;
+    if (directRow) return directRow;
+
+    for (const node of eventPath) {
+      if (!(node instanceof Element)) continue;
+      if (node.matches(rowSelector)) return node;
+      const ancestor = node.closest(rowSelector);
+      if (ancestor) return ancestor;
+    }
+
+    return null;
   }
 
   function cloneReadingPane() {
@@ -159,7 +172,7 @@
 
     document.addEventListener("dblclick", (event) => {
       if (readerMode !== ACCORDION_MODE) return;
-      const row = getMessageRow(event.target);
+      const row = getMessageRow(event.target, event.composedPath());
       if (!row) return;
 
       // Outlook's default double-click action opens a compose-like pop-out.
