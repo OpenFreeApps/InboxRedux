@@ -1,4 +1,4 @@
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import path from "node:path";
@@ -8,8 +8,10 @@ const execFileAsync = promisify(execFile);
 
 async function createArchive(archivePath, sourceDirectory) {
   if (process.platform === "win32") {
-    // Windows does not ship the Unix zip command, but PowerShell's
-    // Compress-Archive produces standard ZIP/XPI files.
+    // Windows does not ship the Unix zip command. PowerShell requires a .zip
+    // destination, so create one and rename it to .xpi for Firefox afterward.
+    const temporaryArchivePath = `${archivePath}.zip`;
+    await rm(temporaryArchivePath, { force: true });
     await execFileAsync(
       "powershell.exe",
       [
@@ -20,9 +22,10 @@ async function createArchive(archivePath, sourceDirectory) {
       ],
       {
         cwd: sourceDirectory,
-        env: { ...process.env, INBOXREDUX_ARCHIVE_PATH: archivePath }
+        env: { ...process.env, INBOXREDUX_ARCHIVE_PATH: temporaryArchivePath }
       }
     );
+    await rename(temporaryArchivePath, archivePath);
     return;
   }
 
