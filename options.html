@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>InboxRedux</title>
+    <style>
+      body { font: 16px system-ui, sans-serif; max-width: 38rem; margin: 3rem auto; padding: 0 1rem; color: #1f1f1f; }
+      label { display: block; margin: 1.5rem 0 .5rem; font-weight: 600; }
+      input { width: 100%; }
+      output { display: inline-block; min-width: 4rem; font-variant-numeric: tabular-nums; }
+      p { line-height: 1.5; color: #555; }
+    </style>
+  </head>
+  <body>
+    <h1>InboxRedux</h1>
+    <p>Choose how Outlook on the web opens messages. Your preferences are stored only in Firefox.</p>
+    <fieldset>
+      <legend>Reading mode</legend>
+      <label><input type="radio" name="mode" value="preview"> Preview pane</label>
+      <p>Uses Outlook’s bottom reading pane. Its height is saved and the divider remains draggable.</p>
+      <label><input type="radio" name="mode" value="accordion"> Accordion reader <small>Experimental</small></label>
+      <p>Double-click a message to open a compact, read-only preview below it. Single-click and Ctrl/Shift selection stay with Outlook.</p>
+    </fieldset>
+    <div id="height-options">
+      <label for="height">Reading pane height: <output id="value">340 px</output></label>
+      <input id="height" type="range" min="180" max="900" step="10" value="340">
+    </div>
+    <script src="options.js"></script>
+  </body>
+</html>
