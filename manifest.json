@@ -1,20 +1,22 @@
 {
   "manifest_version": 3,
   "name": "InboxRedux",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Flexible message-preview options for Outlook on the web.",
   "permissions": [
     "storage"
   ],
   "host_permissions": [
     "https://outlook.office.com/*",
-    "https://outlook.office365.com/*"
+    "https://outlook.office365.com/*",
+    "https://outlook.cloud.microsoft/*"
   ],
   "content_scripts": [
     {
       "matches": [
         "https://outlook.office.com/*",
-        "https://outlook.office365.com/*"
+        "https://outlook.office365.com/*",
+        "https://outlook.cloud.microsoft/*"
       ],
       "js": [
         "content.js"
