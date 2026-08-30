@@ -2,14 +2,14 @@
 
 **Flexible message previews for Outlook on the web, available for Firefox and Chrome.**
 
-InboxRedux gives you a better way to read mail without leaving your inbox. Choose a resizable bottom preview pane or an experimental inline reader that opens a message beneath the row you double-click.
+InboxRedux gives you a better way to read mail without leaving your inbox. Choose a resizable bottom preview pane or an experimental inline reader that opens Outlook’s live message reader beneath the row you double-click.
 
 > InboxRedux is an independent project and is not affiliated with, endorsed by, or sponsored by Microsoft.
 
 ## Features
 
 - **Resizable Preview Pane** — Keep Outlook's bottom reading pane at the height you prefer. Drag the divider whenever you want; InboxRedux remembers the size.
-- **Accordion Reader** *(experimental)* — Double-click a message to open a compact preview directly below its row.
+- **Accordion Reader** *(experimental)* — Double-click a message to open Outlook’s live reader directly below its row.
 - **Normal selection stays normal** — Single-click, Ctrl-click, and Shift-click retain Outlook's usual message-selection behavior.
 - **Firefox and Chrome** — One shared codebase produces separate, store-ready browser packages.
 - **Local preferences only** — Your selected mode and preferred pane height are stored in your browser, on your device.
@@ -28,9 +28,9 @@ Uses Outlook's bottom reading pane with a saved height. This is the default and 
 
 ### Accordion Reader
 
-Hides the bottom pane. Double-click a message row to place a compact, read-only copy of the message below that row. Click **×**, or double-click that same row again, to close it.
+Hides the bottom pane. Double-click a message row to place Outlook’s live message reader below that row. Its normal message controls remain available. Click **×**, or double-click that same row again, to close it.
 
-The Accordion Reader is experimental because Outlook on the web is a frequently updated application. Use Outlook's normal open or pop-out controls for reply, forwarding, attachments, downloads, and other message actions.
+The Accordion Reader is experimental because Outlook on the web is a frequently updated application. Because this mode uses Outlook’s live reader, its supported message controls—including reply, forwarding, attachments, and blocked-content approval—remain available.
 
 ## Install for development or testing
 
