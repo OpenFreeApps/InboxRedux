@@ -31,6 +31,19 @@
   text-transform: uppercase;
 }
 
+.oh-live-reading-pane,
+.oh-live-reading-pane * {
+  -moz-user-select: text !important;
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+.oh-live-reading-pane button,
+.oh-live-reading-pane input,
+.oh-live-reading-pane select {
+  user-select: none !important;
+}
+
 .oh-live-reading-pane {
   display: block !important;
   flex: 1 1 auto !important;
